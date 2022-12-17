@@ -24,12 +24,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class QuerydslBasicTest {
     @PersistenceContext
     EntityManager em;
+
     JPAQueryFactory jpaQueryFactory;
+
+    QMember member;
+
+    QTeam team;
 
     @BeforeEach
     public void before() {
         // JPAQueryFactory init
         jpaQueryFactory = new JPAQueryFactory(em);
+
+        member = QMember.member;
+        team = QTeam.team;
 
         Team teamA = new Team("teamA");
         Team teamB = new Team("teamB");
@@ -78,9 +86,6 @@ public class QuerydslBasicTest {
 
     @Test
     void search() {
-        //given
-        QMember member = QMember.member;
-
         //when
         Member findMember = jpaQueryFactory
                 .selectFrom(member)
@@ -94,9 +99,6 @@ public class QuerydslBasicTest {
 
     @Test
     void searchAndParam() {
-        //given
-        QMember member = QMember.member;
-
         //when
         Member findMember = jpaQueryFactory
                 .selectFrom(member)
@@ -112,9 +114,6 @@ public class QuerydslBasicTest {
 
     @Test
     void resultFetch() {
-        //given
-    	QMember member = QMember.member;
-
         //when
         List<Member> fetch = jpaQueryFactory
                 .selectFrom(member)
@@ -150,8 +149,6 @@ public class QuerydslBasicTest {
     @Test
     void sort() {
         //given
-        QMember member = QMember.member;
-
         em.persist(new Member(null, 100));
         em.persist(new Member("member5", 100));
         em.persist(new Member("member6", 100));
@@ -175,9 +172,6 @@ public class QuerydslBasicTest {
 
     @Test
     void paging() {
-        //given
-        QMember member = QMember.member;
-
         //when
         List<Member> result = jpaQueryFactory
                 .selectFrom(member)
@@ -192,9 +186,6 @@ public class QuerydslBasicTest {
 
     @Test
     void aggregation() {
-        //given
-    	QMember member = QMember.member;
-
         //when
         List<Tuple> result = jpaQueryFactory
                 .select(
@@ -222,10 +213,6 @@ public class QuerydslBasicTest {
      */
     @Test
     void group() {
-        //given
-    	QMember member = QMember.member;
-        QTeam team = QTeam.team;
-
         //when
         List<Tuple> result = jpaQueryFactory
                 .select(team.name, member.age.avg())
@@ -243,5 +230,49 @@ public class QuerydslBasicTest {
 
         assertThat(teamB.get(team.name)).isEqualTo("teamB");
         assertThat(teamA.get(member.age.avg())).isEqualTo(15); // (30 + 40) / 2
+    }
+
+    /**
+     * 팀 A 에 소속된 모든 회원
+     */
+    @Test
+    void join() {
+        //when
+        List<Member> result = jpaQueryFactory
+                .selectFrom(member)
+                .join(member.team, team)
+                .where(team.name.eq("teamA"))
+                .fetch();
+
+        //then
+        assertThat(result)
+                .extracting("userName")
+                .containsExactly("member1", "member2");
+    }
+
+    /**
+     * 세타 조인(연관관계가 없는 필드로 조인)
+     * 회원의 이름이 팀 이름과 같은 회원 조회
+     * -> 모든 멤버과 모든 팀을 가져와 조인하고 조건(where)에 맞게 조회한다.
+     * -> DB 가 성능 최적화를 해준다.
+     */
+    @Test
+    void theta_join() {
+        //given
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+        em.persist(new Member("teamC"));
+
+        //when
+        List<Member> result = jpaQueryFactory
+                .select(member)
+                .from(member, team)
+                .where(member.userName.eq(team.name))
+                .fetch();
+
+        //then
+        assertThat(result)
+                .extracting("userName")
+                .containsExactly("teamA", "teamB");
     }
 }
