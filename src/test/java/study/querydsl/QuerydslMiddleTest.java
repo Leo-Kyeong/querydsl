@@ -270,6 +270,9 @@ public class QuerydslMiddleTest {
         return userNameEq(userNameParam).and(ageEq(ageParam));
     }
 
+    /**
+     * 멤버 나이가 28 보다 작다면 멤버 이름을 "비회원" 으로 변경
+     */
     @Test
     void bulkUpdate() {
         //given
@@ -277,11 +280,11 @@ public class QuerydslMiddleTest {
         //when
         long count = jpaQueryFactory
                 .update(member)
-                .set(member.userName, "비화원")
+                .set(member.userName, "비회원")
                 .where(member.age.lt(28))
                 .execute();
 
-        em.flush();
+
         em.clear();
 
         //then
@@ -314,8 +317,16 @@ public class QuerydslMiddleTest {
         //when
         long count = jpaQueryFactory
                 .delete(member)
-                .where(member.age.gt(18))
+                .where(member.age.gt(21))
                 .execute();
+
         //then
+        List<Member> result = jpaQueryFactory
+                .selectFrom(member)
+                .fetch();
+
+        for (Member findMember : result) {
+            System.out.println("findMember = " + findMember);
+        }
     }
 }
