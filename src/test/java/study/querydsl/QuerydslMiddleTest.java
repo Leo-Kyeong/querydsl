@@ -1,8 +1,10 @@
 package study.querydsl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +22,8 @@ import study.querydsl.entity.Team;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
@@ -201,5 +205,68 @@ public class QuerydslMiddleTest {
         for (MemberDto memberDto : result) {
             System.out.println("memberDto = " + memberDto);
         }
+    }
+
+    @Test
+    void dynamicQuery_BooleanBuilder() {
+        //given
+        String userNameParam = "member1";
+        Integer ageParam = 10;
+
+        //when
+        List<Member> result = searchMember(userNameParam, ageParam);
+
+        //then
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember(String userNameParam, Integer ageParam) {
+
+        // 생성자를 통해 초기 값을 넣을 수도 있다.
+        BooleanBuilder builder = new BooleanBuilder();
+        if (userNameParam != null) {
+            builder.and(member.userName.eq(userNameParam));
+        }
+
+        if (ageParam != null) {
+            builder.and(member.age.eq(ageParam));
+        }
+
+        return jpaQueryFactory
+                .selectFrom(member)
+                .where(builder)
+                .fetch();
+    }
+
+    @Test
+    void dynamicQuery_WhereParam() {
+        //given
+        String userNameParam = "member1";
+        Integer ageParam = 10;
+
+        //when
+        List<Member> result = searchMember2(userNameParam, ageParam);
+
+        //then
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember2(String userNameParam, Integer ageParam) {
+        return jpaQueryFactory
+                .selectFrom(member)
+                .where(userNameEq(userNameParam), ageEq(ageParam)) // where 조건에 null 은 무시됨
+                .fetch();
+    }
+
+    private BooleanExpression userNameEq(String userNameParam) {
+        return userNameParam != null ? member.userName.eq(userNameParam) : null;
+    }
+
+    private BooleanExpression ageEq(Integer ageParam) {
+        return ageParam != null ? member.age.eq(ageParam) : null;
+    }
+
+    private BooleanExpression allEq(String userNameParam, Integer ageParam) {
+        return userNameEq(userNameParam).and(ageEq(ageParam));
     }
 }
