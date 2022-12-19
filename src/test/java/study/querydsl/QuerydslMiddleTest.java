@@ -269,4 +269,53 @@ public class QuerydslMiddleTest {
     private BooleanExpression allEq(String userNameParam, Integer ageParam) {
         return userNameEq(userNameParam).and(ageEq(ageParam));
     }
+
+    @Test
+    void bulkUpdate() {
+        //given
+
+        //when
+        long count = jpaQueryFactory
+                .update(member)
+                .set(member.userName, "비화원")
+                .where(member.age.lt(28))
+                .execute();
+
+        em.flush();
+        em.clear();
+
+        //then
+        List<Member> result = jpaQueryFactory
+                .selectFrom(member)
+                .fetch();
+
+        for (Member findMember : result) {
+            System.out.println("findMember = " + findMember);
+        }
+    }
+
+    @Test
+    void bulkAdd() {
+        //given
+
+        //when
+        long count = jpaQueryFactory
+                .update(member)
+                .set(member.age, member.age.add(2)) // 빼고 싶다면 -2
+                .execute();
+
+        //then
+    }
+
+    @Test
+    void bulkDelete() {
+        //given
+
+        //when
+        long count = jpaQueryFactory
+                .delete(member)
+                .where(member.age.gt(18))
+                .execute();
+        //then
+    }
 }
