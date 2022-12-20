@@ -5,6 +5,7 @@ import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -327,6 +328,49 @@ public class QuerydslMiddleTest {
 
         for (Member findMember : result) {
             System.out.println("findMember = " + findMember);
+        }
+    }
+
+    /**
+     * member M으로 변경하는 replace 함수 사용
+     */
+    @Test
+    void sqlFunction() {
+        //given
+
+        //when
+        List<String> result = jpaQueryFactory
+                .select(Expressions.stringTemplate(
+                        "function('replace', {0}, {1}, {2})",
+                        member.userName, "member", "M"))
+                .from(member)
+                .fetch();
+
+        //then
+        for (String userName : result) {
+            System.out.println("userName = " + userName);
+        }
+    }
+
+    /**
+     * 소문자(lower)로 변경해서 비교
+     */
+    @Test
+    void sqlFunction2() {
+        //given
+
+        //when
+        List<String> result = jpaQueryFactory
+                .select(member.userName)
+                .from(member)
+//                .where(member.userName.eq(
+//                        Expressions.stringTemplate("function('lower', {0})", member.userName)))
+                .where(member.userName.eq(member.userName.lower()))
+                .fetch();
+
+        //then
+        for (String userName : result) {
+            System.out.println("userName = " + userName);
         }
     }
 }
